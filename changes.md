@@ -1,5 +1,25 @@
 # Changes and Feature List
 
+## Version 2.0.0
+* No Need for defining base id in config file except for FGW14-SUB
+  * Entity Ids of gateways change so that base id is not contained anymore
+* Reverse Network EnOcean Bridge to be able to connect eo_man.
+  * TODO: sending of message does often not work in the beginning
+  * TODO: send gateway information frequently
+* FAM14 can detect bus devices and report it into eo_man 
+* Support for EUL Gateway
+* Gateways can be used as repeater inside HA
+* Button event ids changed => INCOMPATIBILTIY to older versions
+* Button events can be used for e.g. dimming therefore events contains time information when and for how long buttons were pushed
+* Created blueprint for dmming and switch lights off and on which trigger by EnOcean switches and not controlled via eltako actuators. You can use EnOcean switches to e.g. controll Zigbee lights from Philips Hue or any other protocol and lights which can be controlled by Home Assistant Automations.
+* Connection state fixed: Display information about gateway connection was sometimes displayed incorrectly
+
+TODO: improve performance of controlling groups. (send only one group telegram instead of many indivitual commands)
+
+## Version 1.5.9
+* Replaced deprecated log function warn through warning
+* Fixed deprecation warning for async_forward_entry_setup
+
 ## Version 1.5.8
 * Fixed dependency incompatibility with HA 2024.9
 

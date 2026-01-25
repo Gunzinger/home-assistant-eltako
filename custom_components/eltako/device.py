@@ -43,6 +43,7 @@ class EltakoEntity(Entity):
             self._external_dev_id = self.dev_id
 
         self.listen_to_addresses.append( self._external_dev_id[0] )
+        # self.listen_to_addresses.append( self.dev_id[0] )
 
         self.description_key = description_key
         self._attr_unique_id = config_helpers.get_device_id(gateway.dev_id, self.dev_id, self._get_description_key())
@@ -157,7 +158,6 @@ class EltakoEntity(Entity):
     def _message_received_callback(self, data: dict) -> None:
         """Handle incoming messages."""
         msg = data['esp2_msg']
-
         msg_types = [EltakoWrappedRPS, EltakoWrapped1BS, EltakoWrapped4BS, RPSMessage, Regular1BSMessage, Regular4BSMessage]
 
         if type(msg) in msg_types:
@@ -165,7 +165,7 @@ class EltakoEntity(Entity):
             if adr.is_local_address():
                 adr = adr.add(self.gateway.base_id)
 
-            # LOGGER.debug(f"[{self.platform} {self.dev_id}] check if message address {b2s(msg.address)} is in registered list {', '.join([b2s(a) for a in self.listen_to_addresses])}")
+            # LOGGER.debug(f"[Device ID: {self.dev_id}] check if message address {b2s(msg.address)} is in registered list {', '.join([b2s(a) for a in self.listen_to_addresses])}")
             if adr[0] in self.listen_to_addresses:
                 ## TODO: filter out message sent twice through other gateways
                 self.value_changed(msg)
@@ -191,7 +191,7 @@ def log_entities_to_be_added(entities:list[EltakoEntity], platform:Platform) -> 
         temp_eep = ""
         if e.dev_eep:
              temp_eep = f"eep: {e.dev_eep.eep_string}),"
-        LOGGER.debug(f"[{platform} {e.dev_id}] Add entity {e.dev_name} (id: {e.dev_id},{temp_eep} gw: {e.gateway.dev_name}) to Home Assistant.")
+        LOGGER.debug(f"[{platform} {e.dev_id}] Add entity {e.dev_name} (id: {e.dev_id},{temp_eep} gw: {e.gateway.dev_name}, listens to: {', '.join([b2s(a) for a in e.listen_to_addresses])}) to Home Assistant.")
 
 def get_entity_from_hass(hass: HomeAssistant, domain:Platform, dev_id: AddressExpression) -> bool:
     entity_platforms = hass.data[DATA_ENTITY_PLATFORM][DOMAIN]

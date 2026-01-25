@@ -278,11 +278,11 @@ class EnOceanGateway:
         """Initialized serial bus and register callback function on HA event bus."""
         self._bus.start()
 
-        LOGGER.debug("[Gateway] [Id: %d] Was started.", self.dev_id)
+        LOGGER.debug(f"[Gateway] [Id: {self.dev_id}] Was started.")
 
         # receive messages from HA event bus
         event_id = config_helpers.get_bus_event_type(gateway_id=self.dev_id, function_id=SIGNAL_SEND_MESSAGE)
-        LOGGER.debug("[Gateway] [Id: %d] Register gateway bus for message event_id %s", event_id)
+        LOGGER.debug(f"[Gateway] [Id: {self.dev_id}] Register gateway bus for message event_id {event_id}")
         self.dispatcher_disconnect_handle = async_dispatcher_connect(
             self.hass, event_id, self._callback_send_message_to_serial_bus
         )
@@ -293,7 +293,7 @@ class EnOceanGateway:
         # might have different gateways that cause the eltako relays
         # only to react on them.
         service_name = config_helpers.get_bus_event_type(gateway_id=self.dev_id, function_id=SIGNAL_SEND_MESSAGE_SERVICE)
-        LOGGER.debug("[Gateway] [Id: %d] Register send message service event_id %s", event_id)
+        LOGGER.debug(f"[Gateway] [Id: {self.dev_id}] Register send message service {service_name}")
         self.hass.services.async_register(DOMAIN, service_name, self.async_service_send_message)
 
 
@@ -404,10 +404,17 @@ class EnOceanGateway:
                     global_msg = prettify(message)
                     # do not change discovery and memory message addresses, base id will be sent upfront so that the receive known to whom the message belong
                     if type(message) in [EltakoWrappedRPS, EltakoWrapped4BS, RPSMessage, Regular1BSMessage, Regular4BSMessage, EltakoMessage]:
-                        address = AddressExpression((message.body[6:10], None))
+                        byte_adr = message.body[-5:-1]
+                        # LOGGER.debug(f"[====>>> address: adr: {b2s(byte_adr)}")
+                        address = AddressExpression((byte_adr, None))
                         if address.is_local_address():
                             address = address.add(self.base_id)
-                            global_msg = prettify(ESP2Message( message.body[:8] + address[0] + message.body[12:] ))
+                            ba = bytearray(global_msg.body)
+                            ba[-5:-1] = bytearray(address[0])
+                            # LOGGER.debug(f"[====>>> old byte array: {b2s(message.body)}")
+                            # LOGGER.debug(f"[====>>> new byte array: {b2s(ba)}")
+                            global_msg = prettify(ESP2Message( ba ))
+
 
                     LOGGER.debug("[Gateway] [Id: %d] Forwared message (%s) in global bus", self.dev_id, global_msg)
                     dispatcher_send(self.hass, ELTAKO_GLOBAL_EVENT_BUS_ID, {'gateway':self, 'esp2_msg': global_msg})

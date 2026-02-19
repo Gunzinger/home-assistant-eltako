@@ -11,6 +11,7 @@ import homeassistant.helpers.config_validation as cv
 from eltakobus.eep import *
 
 from .const import *
+from .device import A5_3F_7F
 from .gateway import GatewayDeviceType
 
 from homeassistant.components.binary_sensor import (
@@ -196,7 +197,7 @@ class CoverSchema(EltakoPlatformSchema):
     PLATFORM = Platform.COVER
 
     CONF_EEP_SUPPORTED = [G5_3F_7F.eep_string]
-    CONF_SENDER_EEP_SUPPORTED = [H5_3F_7F.eep_string]
+    CONF_SENDER_EEP_SUPPORTED = [H5_3F_7F.eep_string, A5_3F_7F.eep_string]
 
     DEFAULT_NAME = "Cover"
 
@@ -265,7 +266,7 @@ class GatewaySchema(EltakoPlatformSchema):
     ENTITY_SCHEMA = vol.Schema({
             vol.Required(CONF_ID): cv.Number,
             vol.Required(CONF_DEVICE_TYPE, default=GatewayDeviceType.GatewayEltakoFGW14USB.value): vol.In([g.value for g in GatewayDeviceType]),
-            vol.Optional(CONF_BASE_ID, default='00-00-00-00'): cv.matches_regex(CONF_ID_REGEX),
+            vol.Required(CONF_BASE_ID): cv.matches_regex(CONF_ID_REGEX),
             vol.Optional(CONF_NAME, default=""): cv.string,
             vol.Optional(CONF_SERIAL_PATH): cv.string,
             vol.Optional(CONF_GATEWAY_AUTO_RECONNECT, default=True): cv.boolean,

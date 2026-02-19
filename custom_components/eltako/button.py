@@ -28,6 +28,7 @@ EEP_WITH_TEACH_IN_BUTTONS = {
     A5_10_12: b'\x40\x90\x0D\x80',  # climate
     A5_38_08: b'\xE0\x40\x0D\x80',  # light
     H5_3F_7F: b'\xFF\xF8\x0D\x80',  # cover
+    A5_3F_7F: b'\xFF\xF8\x0D\x80',  # cover, remote gvfs (e.g. FJ62NP) # 0xFFF80D80
     # F6_02_01  # What button to take?
     # F6_02_02
 }
@@ -68,9 +69,6 @@ async def async_setup_entry(
     # add reconnect button for gateway
     entities.append(GatewayReconnectButton(platform, gateway))
 
-    if gateway.dev_type == GatewayDeviceType.EltakoFAM14:
-        entities.append(GatewayReadAllDevicesButton(platform, gateway))
-
     validate_actuators_dev_and_sender_id(entities)
     log_entities_to_be_added(entities, platform)
     async_add_entities(entities)
@@ -107,6 +105,9 @@ class TeachInButton(AbstractButton):
         """
 
         controller_address, _ = self.sender_id
+        if self.sender_eep == A5_3F_7F:
+            unlock_msg = Regular4BSMessage(address=controller_address, data=b'\x00\x00\x00\x28', outgoing=True, status=0x80)
+            self.send_message(unlock_msg)
         msg = Regular4BSMessage(address=controller_address, data=EEP_WITH_TEACH_IN_BUTTONS[self.sender_eep], outgoing=True, status=0x80)
         self.send_message(msg)
 
@@ -115,8 +116,8 @@ class GatewayReconnectButton(AbstractButton):
 
     def __init__(self, platform: str, gateway: EnOceanGateway):
         self.entity_description = ButtonEntityDescription(
-            key="gateway_" + str(gateway.dev_id) + "_serial_reconnection",
-            name="Reconnect Gateway",
+            key="gateway_" + str(gateway.dev_id) + "Serial Reconnection",
+            name="Reconnect Gateway "+str(gateway.dev_id),
             icon="mdi:button-pointer",
             device_class=ButtonDeviceClass.UPDATE,
         )
@@ -137,32 +138,3 @@ class GatewayReconnectButton(AbstractButton):
     async def async_press(self) -> None:
         """Reconnect serial bus"""
         self.gateway.reconnect()
-
-
-class GatewayReadAllDevicesButton(AbstractButton):
-    """Button for reconnecting serial bus"""
-
-    def __init__(self, platform: str, gateway: EnOceanGateway):
-        self.entity_description = ButtonEntityDescription(
-            key="gateway_" + str(gateway.dev_id) + "read_memory_of_bus_devices",
-            name="Read memory of bus devices",
-            icon="mdi:button-pointer",
-            device_class=ButtonDeviceClass.IDENTIFY,
-        )
-
-        super().__init__(platform, gateway, gateway.base_id, gateway.dev_name, None)
-
-    @property
-    def device_info(self) -> DeviceInfo:
-        """Return the device info."""
-        return DeviceInfo(
-            identifiers={(DOMAIN, self.gateway.serial_path)},
-            name= self.gateway.dev_name,
-            manufacturer=MANUFACTURER,
-            model=self.gateway.model,
-            via_device=(DOMAIN, self.gateway.serial_path)
-        )
-
-    async def async_press(self) -> None:
-        """Reconnect serial bus"""
-        await self.gateway.read_memory_of_all_bus_members()

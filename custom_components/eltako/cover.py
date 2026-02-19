@@ -117,14 +117,14 @@ class EltakoCover(EltakoEntity, CoverEntity, RestoreEntity):
             self._attr_is_opening = None
             self._attr_is_closing = None
             self._attr_is_closed = None # means undefined state
-            # raise e
+            raise e
         
         self.schedule_update_ha_state()
         LOGGER.debug(f"[cover {self.dev_id}] value initially loaded: [" 
                      + f"is_opening: {self.is_opening}, "
                      + f"is_closing: {self.is_closing}, "
                      + f"is_closed: {self.is_closed}, "
-                     + f"current_possition: {self._attr_current_cover_position}, "
+                     + f"current_position: {self._attr_current_cover_position}, "
                      + f"current_tilt_position: {self._attr_current_cover_tilt_position}, "
                      + f"state: {self.state}]")
 
@@ -141,9 +141,12 @@ class EltakoCover(EltakoEntity, CoverEntity, RestoreEntity):
         if self._sender_eep == H5_3F_7F:
             msg = H5_3F_7F(time, 0x01, 1).encode_message(address)
             self.send_message(msg)
+        elif self._sender_eep == A5_3F_7F:
+            msg = A5_3F_7F(time, 0x01, 1).encode_message(address)
+            self.send_message(msg)
 
         else:
-            LOGGER.warning("[%s %s] Sender EEP %s not supported.", Platform.COVER, str(self.dev_id), self._sender_eep.eep_string)
+            LOGGER.warn("[%s %s] Sender EEP %s not supported.", Platform.COVER, str(self.dev_id), self._sender_eep.eep_string)
             return
         
         #TODO: ... setting state should be comment out
@@ -167,9 +170,12 @@ class EltakoCover(EltakoEntity, CoverEntity, RestoreEntity):
         if self._sender_eep == H5_3F_7F:
             msg = H5_3F_7F(time, 0x02, 1).encode_message(address)
             self.send_message(msg)
+        elif self._sender_eep == A5_3F_7F:
+            msg = A5_3F_7F(time, 0x02, 1).encode_message(address)
+            self.send_message(msg)
 
         else:
-            LOGGER.warning("[%s %s] Sender EEP %s not supported.", Platform.COVER, str(self.dev_id), self._sender_eep.eep_string)
+            LOGGER.warn("[%s %s] Sender EEP %s not supported.", Platform.COVER, str(self.dev_id), self._sender_eep.eep_string)
             return
         
         #TODO: ... setting state should be comment out
@@ -205,17 +211,20 @@ class EltakoCover(EltakoEntity, CoverEntity, RestoreEntity):
             time = max(1,min(int(((self._attr_current_cover_position - position) / 100.0) * self._time_closes), 255))
             # try to prevent covers moving completely up or down when time = 0
 
-        if self._sender_eep == H5_3F_7F:
+        if self._sender_eep == H5_3F_7F or self._sender_eep == A5_3F_7F:
             if direction == "up":
                 command = 0x01
             elif direction == "down":
                 command = 0x02
-            
-            msg = H5_3F_7F(time, command, 1).encode_message(address)
+
+            if self._sender_eep == H5_3F_7F:
+                msg = H5_3F_7F(time, command, 1).encode_message(address)
+            elif self._sender_eep == A5_3F_7F:
+                msg = A5_3F_7F(time, command, 1).encode_message(address)
             self.send_message(msg)
 
         else:
-            LOGGER.warning("[%s %s] Sender EEP %s not supported.", Platform.COVER, str(self.dev_id), self._sender_eep.eep_string)
+            LOGGER.warn("[%s %s] Sender EEP %s not supported.", Platform.COVER, str(self.dev_id), self._sender_eep.eep_string)
             return
         
         if self.general_settings[CONF_FAST_STATUS_CHANGE]:
@@ -235,6 +244,9 @@ class EltakoCover(EltakoEntity, CoverEntity, RestoreEntity):
 
         if self._sender_eep == H5_3F_7F:
             msg = H5_3F_7F(0, 0x00, 1).encode_message(address)
+            self.send_message(msg)
+        elif self._sender_eep == A5_3F_7F:
+            msg = A5_3F_7F(0, 0x00, 1).encode_message(address)
             self.send_message(msg)
         
         if self.general_settings[CONF_FAST_STATUS_CHANGE]:
@@ -335,19 +347,24 @@ class EltakoCover(EltakoEntity, CoverEntity, RestoreEntity):
             direction = "down"
             sleeptime = min((((self._attr_current_cover_tilt_position - tilt_position) / 100.0 * self._time_tilts / 10.0) ), 255.0)
 
-        if self._sender_eep == H5_3F_7F:
+        if self._sender_eep == H5_3F_7F or self._sender_eep == A5_3F_7F:
             if direction == "up":
                 command = 0x01
             elif direction == "down":
                 command = 0x02
-            
-            msg = H5_3F_7F(0, command, 1).encode_message(address)
+
+            if self._sender_eep == H5_3F_7F:
+                msg = H5_3F_7F(time, command, 1).encode_message(address)
+            elif self._sender_eep == A5_3F_7F:
+                msg = A5_3F_7F(time, command, 1).encode_message(address)
             self.send_message(msg)
             time.sleep(sleeptime)
-            
-            msg = H5_3F_7F(0, 0x00, 1).encode_message(address)
-            self.send_message(msg)
 
+            if self._sender_eep == H5_3F_7F:
+                msg = H5_3F_7F(0, 0x00, 1).encode_message(address)
+            elif self._sender_eep == A5_3F_7F:
+                msg = A5_3F_7F(0, 0x00, 1).encode_message(address)
+            self.send_message(msg)
         
         if self.general_settings[CONF_FAST_STATUS_CHANGE]:
             if direction == "up":
